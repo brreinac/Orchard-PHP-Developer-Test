@@ -11,3 +11,7 @@
 1. Clone or copy into your webroot.
 2. `composer install`
 3. Create DB and install Drupal:
+
+vendor/bin/drush site:install standard
+--db-url=mysql://user:pass@127.0.0.1/dbname
+--site-name="Orchard" --account-name=admin --account-pass=admin --yes
