@@ -26,6 +26,8 @@
 - Random featured product block.  
 - Click‑tracking table & stub for weekly cron report.
 
+## Database Settings
+
 vendor/bin/drush site:install standard
 --db-url=mysql://user:pass@127.0.0.1/dbname
 --site-name="Orchard" --account-name=admin --account-pass=admin --yes
