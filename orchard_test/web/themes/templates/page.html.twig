@@ -1,0 +1,11 @@
+<body{{ attributes }}>  {# existing line #}
+
+  {# --- New banner region start --- #}
+  {% if page.banner %}
+    <div class="region-banner">
+      {{ page.banner }}
+    </div>
+  {% endif %}
+  {# --- New banner region end --- #}
+
+  {# ...rest of your template... #}

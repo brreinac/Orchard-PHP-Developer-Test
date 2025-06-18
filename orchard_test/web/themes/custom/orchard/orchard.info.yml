@@ -1,0 +1,13 @@
+name: MyTheme
+type: theme
+core_version_requirement: ^10
+base theme: stable
+description: 'Custom theme with banner region.'
+
+regions:
+  header: 'Header'
+  primary_menu: 'Primary menu'
+  content: 'Content'
+  sidebar: 'Sidebar'
+  footer: 'Footer'
+  banner: 'Banner'
