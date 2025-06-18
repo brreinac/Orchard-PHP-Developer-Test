@@ -1,0 +1,5 @@
+name: Product of the Day
+type: module
+description: Adds a Product of the Day block with admin CRUD.
+package: Custom
+core_version_requirement: ^9 || ^10

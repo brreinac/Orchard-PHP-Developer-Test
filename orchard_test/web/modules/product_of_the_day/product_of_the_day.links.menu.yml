@@ -1,0 +1,6 @@
+product_of_the_day.settings_form:
+  title: 'Product of the Day'
+  description: 'Configure Product of the Day.'
+  parent: system.admin_config_system
+  route_name: product_of_the_day.settings_form
+  weight: 10

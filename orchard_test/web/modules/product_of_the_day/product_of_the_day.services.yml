@@ -1,0 +1,6 @@
+services:
+  product_of_the_day.event_subscriber:
+    class: Drupal\product_of_the_day\EventSubscriber\ProductOfTheDaySubscriber
+    arguments: ['@messenger']
+    tags:
+      - { name: event_subscriber }

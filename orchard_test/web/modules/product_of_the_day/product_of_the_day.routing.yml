@@ -1,0 +1,15 @@
+product_of_the_day.example:
+  path: '/product-of-the-day/example'
+  defaults:
+    _title: 'Example'
+    _controller: '\Drupal\product_of_the_day\Controller\ProductOfTheDayController::build'
+  requirements:
+    _permission: 'access content'
+
+product_of_the_day.settings_form:
+  path: '/admin/config/system/product-of-the-day'
+  defaults:
+    _title: 'Product of the Day settings'
+    _form: 'Drupal\product_of_the_day\Form\SettingsForm'
+  requirements:
+    _permission: 'administer product_of_the_day configuration'

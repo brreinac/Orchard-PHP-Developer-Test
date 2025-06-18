@@ -1,0 +1,8 @@
+# Schema for the configuration files of the Product of the Day module.
+product_of_the_day.settings:
+  type: config_object
+  label: 'Product of the Day settings'
+  mapping:
+    example:
+      type: string
+      label: 'Example'
