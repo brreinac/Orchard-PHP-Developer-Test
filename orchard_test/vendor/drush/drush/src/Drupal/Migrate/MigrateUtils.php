@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Drush\Drupal\Migrate;
 
 /**
@@ -16,6 +14,8 @@ class MigrateUtils
      * separated by a colon (":").
      *
      * @param string|null $idlist
+     *
+     * @return array
      */
     public static function parseIdList(?string $idlist): array
     {

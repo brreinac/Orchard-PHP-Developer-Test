@@ -1,15 +1,12 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Drush\Attributes;
 
 use Attribute;
-use Consolidation\AnnotatedCommand\CommandData;
-use Consolidation\AnnotatedCommand\CommandError;
+use Consolidation\AnnotatedCommand\Parser\CommandInfo;
 
 #[Attribute(Attribute::TARGET_METHOD)]
-class ValidateModulesEnabled extends ValidatorBase implements ValidatorInterface
+class ValidateModulesEnabled
 {
     /**
      * @param $modules
@@ -20,12 +17,9 @@ class ValidateModulesEnabled extends ValidatorBase implements ValidatorInterface
     ) {
     }
 
-    public function validate(CommandData $commandData)
+    public static function handle(\ReflectionAttribute $attribute, CommandInfo $commandInfo)
     {
-        $missing = array_filter($this->modules, fn($module) => !\Drupal::moduleHandler()->moduleExists($module));
-        if ($missing) {
-            $msg = dt('The following modules are required: !modules', ['!modules' => implode(', ', $missing)]);
-            return new CommandError($msg);
-        }
+        $args = $attribute->getArguments();
+        $commandInfo->addAnnotation('validate-module-enabled', $args['modules'] ?? $args[0]);
     }
 }

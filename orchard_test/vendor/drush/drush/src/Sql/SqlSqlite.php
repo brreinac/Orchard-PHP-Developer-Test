@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Drush\Sql;
 
 use Drush\Drush;
@@ -57,7 +55,7 @@ class SqlSqlite extends SqlBase
 
     public function listTables(): array
     {
-        $this->alwaysQuery('.tables');
+        $return = $this->alwaysQuery('.tables');
         $tables_raw = explode(PHP_EOL, trim($this->getProcess()->getOutput()));
         // SQLite's '.tables' command always outputs the table names in a column
         // format, like this:

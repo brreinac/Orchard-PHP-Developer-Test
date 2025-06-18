@@ -1,0 +1,53 @@
+<?php
+
+use Drupal\Core\Menu\MenuTreeParameters;
+
+/**
+ * Implements hook_page_attachments().
+ */
+function banner_switcher_page_attachments(array &$attachments) {
+  $attachments['#attached']['library'][] = 'banner_switcher/banner_style';
+}
+
+/**
+ * Implements hook_preprocess_page().
+ */
+function banner_switcher_preprocess_page(array &$variables) {
+  // 1) Detectar si estamos en un admin route y salir inmediatamente.
+  if (\Drupal::service('router.admin_context')->isAdminRoute()) {
+    return;
+  }
+
+  // 2) Nombre de tu menú principal.
+  $menu_name = 'main';
+
+  // 3) Obtener solo la "ruta activa" (Active trail IDs) de ese menú.
+  $active_trail = array_filter(
+    \Drupal::service('menu.active_trail')->getActiveTrailIds($menu_name),
+    fn($id) => is_string($id) && $id !== ''
+  );
+
+  // 4) Valor por defecto.
+  $root_title = 'Root B';
+
+  $manager = \Drupal::service('plugin.manager.menu.link');
+
+  // 5) Recorrer solo esos pocos IDs en vez de todo el árbol.
+  foreach ($active_trail as $plugin_id) {
+    try {
+      $link = $manager->createInstance($plugin_id);
+    }
+    catch (\Exception $e) {
+      continue;
+    }
+    $title = $link->getTitle();
+    if (in_array($title, ['Root A', 'Root B'], TRUE)) {
+      $root_title = $title;
+      break;
+    }
+  }
+
+  // 6) Asignar la clase CSS al <body> o al <html>.
+  $class = ($root_title === 'Root A') ? 'banner-root-a' : 'banner-root-b';
+  $variables['attributes']['class'][] = $class;
+}

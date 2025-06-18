@@ -15,11 +15,10 @@
         }
     ],
     "require": {
-        "composer/installers": "^2.3",
-        "drupal/core-composer-scaffold": "^11.1",
-        "drupal/core-project-message": "^11.1",
-        "drupal/core-recommended": "^11.1",
-        "drush/drush": "^13.6"
+        "composer/installers": "^2.0",
+        "drupal/core-composer-scaffold": "^10.0",
+        "drupal/core-project-message": "^10.0",
+        "drupal/core-recommended": "^10.0"
     },
     "conflict": {
         "drupal/drupal": "*"
@@ -32,8 +31,7 @@
             "drupal/core-composer-scaffold": true,
             "drupal/core-project-message": true,
             "phpstan/extension-installer": true,
-            "dealerdirect/phpcodesniffer-composer-installer": true,
-            "php-http/discovery": true
+            "dealerdirect/phpcodesniffer-composer-installer": true
         },
         "sort-packages": true
     },
@@ -70,9 +68,6 @@
             ],
             "web/themes/custom/{$name}": [
                 "type:drupal-custom-theme"
-            ],
-            "recipes/{$name}": [
-                "type:drupal-recipe"
             ]
         },
         "drupal-core-project-message": {
@@ -96,5 +91,8 @@
                 "      composer remove drupal/core-project-message"
             ]
         }
+    },
+    "require-dev": {
+        "drush/drush": "11.5.1"
     }
 }

@@ -1,0 +1,11 @@
+.region-banner {
+  height: 400px;
+  background-size: cover;
+  background-position: center;
+}
+.banner-root-a .region-banner {
+  background-image: url('../images/bannerA.jpg');
+}
+.banner-root-b .region-banner {
+  background-image: url('../images/bannerB.jpg');
+}

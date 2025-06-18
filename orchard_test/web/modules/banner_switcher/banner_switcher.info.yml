@@ -1,0 +1,5 @@
+name: Banner Switcher
+type: module
+description: Swaps banner image based on menu branch
+package: Custom
+core_version_requirement: ^9 || ^10

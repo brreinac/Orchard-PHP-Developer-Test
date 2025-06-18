@@ -1,18 +1,18 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Drush\Commands\core;
 
 use Consolidation\AnnotatedCommand\AnnotatedCommand;
 use Consolidation\AnnotatedCommand\AnnotationData;
-use Drush\Attributes as CLI;
-use Drush\Boot\DrupalBootLevels;
+use Consolidation\SiteAlias\SiteAliasManagerAwareTrait;
+use Drush\Boot\AutoloaderAwareInterface;
+use Drush\Boot\AutoloaderAwareTrait;
 use Drush\Commands\DrushCommands;
 use Drush\Commands\generate\ApplicationFactory;
 use Drush\Commands\help\HelpCLIFormatter;
 use Drush\Commands\help\ListCommands;
 use Drush\Drush;
+use Drush\SiteAlias\SiteAliasManagerAwareInterface;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -21,16 +21,21 @@ use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Yaml\Yaml;
 
-final class MkCommands extends DrushCommands
+class MkCommands extends DrushCommands implements SiteAliasManagerAwareInterface, AutoloaderAwareInterface
 {
+    use SiteAliasManagerAwareTrait;
+    use AutoloaderAwareTrait;
+
     /**
-     * Build a Markdown document for each available Drush command/generator.
+     * Build a Markdown document for each Drush command/generator that is available on a site.
      *
-     * This command is an early step when building the www.drush.org static site. Adapt it to build a similar site listing the commands that are available on your site. Also see Drush's [Github Actions workflow](https://github.com/drush-ops/drush/blob/13.x/.github/workflows/main.yml).
+     * This command is an early step when building the www.drush.org static site. Adapt it to build a similar site listing the commands that are available on your site. Also see Drush's [Github Actions workflow](https://github.com/drush-ops/drush/blob/11.x/.github/workflows/main.yml).
+     *
+     * @command mk:docs
+     * @bootstrap max
+     * @usage drush mk:docs
+     *   Build many .md files in the docs/commands and docs/generators directories.
      */
-    #[CLI\Command(name: 'mk:docs')]
-    #[CLI\Bootstrap(level: DrupalBootLevels::FULL)]
-    #[CLI\Usage(name: 'drush mk:docs', description: 'Build many .md files in the docs/commands and docs/generators directories.')]
     public function docs(): void
     {
         $dir_root = Drush::bootstrapManager()->getComposerRoot();
@@ -47,8 +52,9 @@ final class MkCommands extends DrushCommands
         $destination = 'generators';
         $destination_path = Path::join($dir_root, 'docs', $destination);
         $this->prepare($destination_path);
-        $container = Drush::getContainer();
-        $application_generate = (new ApplicationFactory($container, $this->logger()))->create();
+        $factory = new ApplicationFactory($this->logger(), $this->getConfig());
+        $factory->setAutoloader($this->autoloader());
+        $application_generate = $factory->create();
         $all = $this->createAnnotatedCommands($application_generate, Drush::getApplication());
         $namespaced = ListCommands::categorize($all);
         [$nav_generators, $pages_generators, $map_generators] = $this->writeContentFilesAndBuildNavAndBuildRedirectMap($namespaced, $destination, $dir_root, $destination_path);
@@ -57,12 +63,9 @@ final class MkCommands extends DrushCommands
         $this->writeYml($nav_commands, $nav_generators, $map_commands, $map_generators, $dir_root);
     }
 
-    /**
-     * Convert generators into Annotated commands (for Help).
-     */
     public function createAnnotatedCommands(Application $application_generate, Application $application_drush): array
     {
-        $commands = [];
+        $application = new Application('temp');
         $definition = $application_drush->get('generate')->getDefinition();
         foreach ($application_generate->all() as $command) {
             $annotated = new AnnotatedCommand($command->getName());
@@ -73,16 +76,19 @@ final class MkCommands extends DrushCommands
             $annotated->setDescription($command->getDescription());
             $annotated->setHelp($command->getHelp());
             $annotated->setAliases($command->getAliases());
-            $annotated->setTopics([DocsCommands::GENERATORS]);
-            $annotated->setHidden($command->isHidden());
+            $annotated->setTopics(['docs:generators']);
             $values = [];
-            if ($command->getName() == 'entity:bundle-class') {
+            if (in_array($command->getName(), ['entity:bundle-class'])) {
                 $values['version'] = '11.0';
             }
             $annotated->setAnnotationData(new AnnotationData($values));
-            $annotated->addUsageOrExample('drush generate ' . $command->getName(), $command->getDescription());
+            // Hack, until we have https://github.com/consolidation/annotated-command/pull/247
+            $method = new \ReflectionMethod($annotated, 'addUsageOrExample');
+            $method->setAccessible(true);
+            $method->invoke($annotated, 'drush generate ' . $command->getName(), $command->getDescription());
             $commands[$command->getName()] = $annotated;
         }
+        unset($commands['list'], $commands['help']);
         return $commands;
     }
 
@@ -113,21 +119,19 @@ EOT;
             $body = "#### Topics\n\n";
             foreach ($topics as $name) {
                 $value = "- `drush $name`\n";
-                /** @var AnnotatedCommand $topic_command */
                 $topic_command = Drush::getApplication()->find($name);
                 $topic_description = $topic_command->getDescription();
                 if ($docs_relative = $topic_command->getAnnotationData()->get('topic')) {
                     $commandfile_path = dirname($topic_command->getAnnotationData()->get('_path'));
                     $abs = Path::makeAbsolute($docs_relative, $commandfile_path);
                     if (file_exists($abs)) {
-                        $base = Drush::config()->get('drush.base-dir');
-                        $docs_path = Path::join($base, 'docs');
+                        $docs_path = Path::join(DRUSH_BASE_PATH, 'docs');
                         if (Path::isBasePath($docs_path, $abs)) {
                             $target_relative = Path::makeRelative($abs, $dir_commands);
                             $value = "- [$topic_description]($target_relative) ($name)";
                         } else {
-                            $rel_from_root = Path::makeRelative($abs, $base);
-                            $value = "- [$topic_description](https://raw.githubusercontent.com/drush-ops/drush/13.x/$rel_from_root) ($name)";
+                            $rel_from_root = Path::makeRelative($abs, DRUSH_BASE_PATH);
+                            $value = "- [$topic_description](https://raw.githubusercontent.com/drush-ops/drush/11.x/$rel_from_root) ($name)";
                         }
                     }
                 }
@@ -165,10 +169,11 @@ EOT;
                     continue;
                 }
                 // The values don't go through standard formatting since we want to show http://default not the uri that was used when running this command.
-                $body .= '- **' . HelpCLIFormatter::formatOptionKeys(self::optionToArray($value)) . '**. ' . self::cliTextToMarkdown($value->getDescription()) . "\n";
+                $body .= '- ** ' . HelpCLIFormatter::formatOptionKeys(self::optionToArray($value)) . '**. ' . self::cliTextToMarkdown($value->getDescription()) . "\n";
             }
             $body .= '- To see all global options, run <code>drush topic</code> and pick the first choice.' . "\n";
-            return "#### Global Options\n\n$body\n";
+            $body = "#### Global Options\n\n$body\n";
+            return $body;
         }
         return '';
     }
@@ -204,21 +209,17 @@ EOT;
         if ($command instanceof AnnotatedCommand) {
             $path = Path::makeRelative($command->getAnnotationData()->get('_path'), $root);
         }
-        $edit_url = $path ? "https://github.com/drush-ops/drush/blob/13.x/$path" : '';
+        $edit_url = $path ? "https://github.com/drush-ops/drush/blob/11.x/$path" : '';
         $body = <<<EOT
 ---
 edit_url: $edit_url
 command: {$command->getName()}
-title: {$command->getName()}
-description: {$command->getDescription()}
 ---
 
 EOT;
         $body .= "# {$command->getName()}\n\n";
         if ($command instanceof AnnotatedCommand && $version = $command->getAnnotationData()->get('version')) {
             $body .= ":octicons-tag-24: $version+\n\n";
-        } elseif (str_starts_with($command->getName(), 'yaml:')) {
-            $body .= ":octicons-tag-24: 12.0+\n\n";
         }
         if ($command->getDescription()) {
             $body .= self::cliTextToMarkdown($command->getDescription()) . "\n\n";
@@ -234,20 +235,18 @@ EOT;
         $base = Yaml::parseFile(Path::join($dest, 'mkdocs_base.yml'));
         $base['nav'][] = ['Commands' => $nav_commands];
         $base['nav'][] = ['Generators' => $nav_generators];
-        $base['nav'][] = ['API' => '/api'];
         $base['plugins'][]['redirects']['redirect_maps'] = $map_commands + $map_generators;
         $yaml_nav = Yaml::dump($base, PHP_INT_MAX, 2);
 
         // Remove invalid quotes that Symfony YAML adds/needs. https://github.com/symfony/symfony/blob/6.1/src/Symfony/Component/Yaml/Inline.php#L624
-        $yaml_nav = str_replace("'!!python/name:material.extensions.emoji.twemoji'", '!!python/name:material.extensions.emoji.twemoji', $yaml_nav);
-        $yaml_nav = str_replace("'!!python/name:material.extensions.emoji.to_svg'", '!!python/name:material.extensions.emoji.to_svg', $yaml_nav);
+        $yaml_nav = str_replace("'!!python/name:materialx.emoji.twemoji'", '!!python/name:materialx.emoji.twemoji', $yaml_nav);
+        $yaml_nav = str_replace("'!!python/name:materialx.emoji.to_svg'", '!!python/name:materialx.emoji.to_svg', $yaml_nav);
 
         file_put_contents(Path::join($dest, 'mkdocs.yml'), $yaml_nav);
     }
 
     protected function writeAllMd(array $pages_all, string $destination_path, string $title): void
     {
-        $items = [];
         unset($pages_all['all']);
         foreach ($pages_all as $name => $page) {
             $basename = basename($page);
@@ -282,7 +281,9 @@ EOT;
     /**
      * Build an array since that's what HelpCLIFormatter expects.
      *
+     * @param InputArgument $arg
      *
+     * @return iterable
      */
     public static function argToArray(InputArgument $arg): iterable
     {
@@ -296,7 +297,9 @@ EOT;
     /**
      * Build an array since that's what HelpCLIFormatter expects.
      *
+     * @param InputOption $opt
      *
+     * @return iterable
      */
     public static function optionToArray(InputOption $opt): iterable
     {
@@ -330,7 +333,7 @@ EOT;
         foreach ($namespaced as $category => $commands) {
             foreach ($commands as $command) {
                 // Special case a single page
-                if ($pages_all === []) {
+                if (empty($pages_all)) {
                     $pages['all'] = $destination . '/all.md';
                 }
 
@@ -343,14 +346,14 @@ EOT;
                 }
                 $body .= self::appendArguments($command);
                 $body .= self::appendOptions($command);
-                if ($destination === 'commands') {
+                if ($destination == 'commands') {
                     $body .= self::appendOptionsGlobal($command->getApplication());
                 }
                 if ($command instanceof AnnotatedCommand) {
                     $body .= self::appendTopics($command, $destination_path);
                 }
                 $body .= self::appendAliases($command);
-                if ($destination === 'commands') {
+                if ($destination == 'commands') {
                     $body .= self::appendPostAmble();
                 }
                 $filename = $this->getFilename($command->getName());
@@ -365,7 +368,7 @@ EOT;
             $this->logger()->info('Found {pages} pages in {cat}', ['pages' => count($pages), 'cat' => $category]);
             $nav[] = [$category => $pages];
             $pages_all = array_merge($pages_all, $pages);
-            $pages = [];
+            unset($pages);
         }
         return [$nav, $pages_all, $map_all];
     }
@@ -375,7 +378,7 @@ EOT;
         $map = [];
         foreach ($command->getAliases() as $alias) {
             // Skip trivial aliases that differ by a dash.
-            if (str_replace([':', '-'], '', $command->getName()) === str_replace([':', '-'], '', $alias)) {
+            if (str_replace([':', '-'], '', $command->getName()) == str_replace([':', '-'], '', $alias)) {
                 continue;
             }
             $map[Path::join($destination, $this->getFilename($alias))] = Path::join($destination, $this->getFilename($command->getName()));
