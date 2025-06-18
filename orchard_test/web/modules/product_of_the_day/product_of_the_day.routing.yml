@@ -13,3 +13,27 @@ product_of_the_day.settings_form:
     _form: 'Drupal\product_of_the_day\Form\SettingsForm'
   requirements:
     _permission: 'administer product_of_the_day configuration'
+
+product_of_the_day.product_list:
+  path: '/admin/content/pod'
+  defaults:
+    _controller: '\Drupal\product_of_the_day\Controller\ProductListController::list'
+    _title: 'Products'
+  requirements:
+    _permission: 'administer site configuration'
+
+product_of_the_day.product_add:
+  path: '/admin/content/pod/add'
+  defaults:
+    _form: '\Drupal\product_of_the_day\Form\ProductForm'
+    _title: 'Add Product'
+  requirements:
+    _permission: 'administer site configuration'
+
+product_of_the_day.product_edit:
+  path: '/admin/content/pod/{id}/edit'
+  defaults:
+    _form: '\Drupal\product_of_the_day\Form\ProductForm'
+    _title: 'Edit Product'
+  requirements:
+    _permission: 'administer site configuration'

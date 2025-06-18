@@ -4,3 +4,10 @@ product_of_the_day.settings_form:
   parent: system.admin_config_system
   route_name: product_of_the_day.settings_form
   weight: 10
+
+product_of_the_day.admin:
+  title: 'Products'
+  description: 'Manage products of the day'
+  parent: system.admin_content
+  route_name: product_of_the_day.product_list
+  weight: 100

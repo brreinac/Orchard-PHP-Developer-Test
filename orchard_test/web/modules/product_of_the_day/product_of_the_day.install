@@ -23,57 +23,26 @@ function product_of_the_day_uninstall() {
  * Implements hook_schema().
  */
 function product_of_the_day_schema() {
-  $schema['product_of_the_day_example'] = [
-    'description' => 'Table description.',
+  $schema['product_of_the_day'] = [
     'fields' => [
-      'id' => [
-        'type' => 'serial',
-        'not null' => TRUE,
-        'description' => 'Primary Key: Unique record ID.',
-      ],
-      'uid' => [
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-        'default' => 0,
-        'description' => 'The {users}.uid of the user who created the record.',
-      ],
-      'status' => [
-        'description' => 'Boolean indicating whether this record is active.',
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-        'default' => 0,
-        'size' => 'tiny',
-      ],
-      'type' => [
-        'type' => 'varchar_ascii',
-        'length' => 64,
-        'not null' => TRUE,
-        'default' => '',
-        'description' => 'Type of the record.',
-      ],
-      'created' => [
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-        'description' => 'Timestamp when the record was created.',
-      ],
-      'data' => [
-        'type' => 'blob',
-        'not null' => TRUE,
-        'size' => 'big',
-        'description' => 'The arbitrary data for the item.',
-      ],
+      'id'          => ['type'=>'serial','not null'=>TRUE],
+      'name'        => ['type'=>'varchar','length'=>255,'not null'=>TRUE],
+      'summary'     => ['type'=>'text','not null'=>FALSE],
+      'image_fid'   => ['type'=>'int','not null'=>TRUE],
+      'is_featured' => ['type'=>'int','size'=>'tiny','default'=>0],
+      'created'     => ['type'=>'int','not null'=>TRUE],
+      'changed'     => ['type'=>'int','not null'=>TRUE],
     ],
     'primary key' => ['id'],
-    'indexes' => [
-      'type' => ['type'],
-      'uid' => ['uid'],
-      'status' => ['status'],
-    ],
   ];
-
+  $schema['product_clicks'] = [
+    'fields' => [
+      'id'         => ['type'=>'serial','not null'=>TRUE],
+      'product_id' => ['type'=>'int','not null'=>TRUE],
+      'timestamp'  => ['type'=>'int','not null'=>TRUE],
+    ],
+    'primary key' => ['id'],
+  ];
   return $schema;
 }
 
